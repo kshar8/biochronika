@@ -3,67 +3,41 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, date
 
-# ── Colors ───────────────────────────────────────────────────────────
-KELP  = "#405A51"
-FERN  = "#607663"
-RUST  = "#A25B4C"
-MOSS  = "#6D7D55"
-NAVY  = "#2B3955"
-BLUSH = "#C99287"
-
 EVENT_COLORS = {
-    "infection":   "#c0392b",
-    "symptom":     "#d68910",
-    "vaccination": "#27ae60",
-    "medication":  "#3949ab",
-    "other":       "#888888",
+    "infection":   "#d32f2f",
+    "symptom":     "#e65100",
+    "vaccination": "#2e7d32",
+    "medication":  "#1565c0",
+    "other":       "#555555",
 }
-BIOMARKER_COLORS = [KELP, NAVY, MOSS, RUST, FERN, BLUSH, "#7B6FA0", "#5B8FA6"]
+BIOMARKER_COLORS = [
+    "#1565c0","#2e7d32","#d32f2f","#6a1099",
+    "#e65100","#00695c","#4e342e","#37474f"
+]
 CATEGORIES  = ["Inflammatory","Neuro/CNS","Metabolic","Hematologic","Hormonal","Other"]
 EVENT_TYPES = ["infection","symptom","vaccination","medication","other"]
 
-# ── Page config ──────────────────────────────────────────────────────
 st.set_page_config(page_title="BioChronika", page_icon="🧬", layout="wide")
 
 st.markdown("""
 <style>
-html, body, [class*="css"] {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #ffffff; color: #1a1a1a;
-}
-.main { background: #ffffff; }
-section[data-testid="stSidebar"] {
-  background: #f5f5f5 !important;
-  border-right: 1px solid #e0e0e0;
-}
-section[data-testid="stSidebar"] * { color: #1a1a1a !important; }
-h1,h2,h3 { color: #1a1a1a; font-weight: 600; }
-.stButton > button {
-  background: #405A51; color: white; border: none;
-  border-radius: 5px; font-weight: 500; padding: 0.4rem 1.2rem;
-}
-.stButton > button:hover { background: #607663; color: white; }
-.card {
-  background: #f9f9f9; border: 1px solid #e5e5e5;
-  border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
-}
-.sec-hdr {
-  font-size: 14px; font-weight: 600; color: #444;
-  border-bottom: 1px solid #e5e5e5; padding-bottom: 5px; margin-bottom: 0.75rem;
-}
-.upload-hint {
-  background: #fafafa; border: 1.5px dashed #ddd; border-radius: 8px;
-  padding: 1.25rem; text-align: center; color: #aaa; font-size: 13px; margin-bottom: 0.75rem;
-}
-.badge {
-  display:inline-block; padding: 2px 8px; border-radius: 4px;
-  font-size: 11px; font-weight: 500; margin-right: 4px;
-}
-.b-infection   { background:#fde8e8; color:#c0392b; }
-.b-symptom     { background:#fef3e2; color:#d68910; }
-.b-vaccination { background:#e8f5e9; color:#27ae60; }
-.b-medication  { background:#e8eaf6; color:#3949ab; }
-.b-other       { background:#f5f5f5; color:#666;    }
+* { font-family: Arial, sans-serif !important; }
+html, body, [class*="css"] { background: #fff; color: #111; }
+.main { background: #fff; }
+section[data-testid="stSidebar"] { background: #fafafa !important; border-right: 1px solid #ddd; }
+section[data-testid="stSidebar"] * { color: #111 !important; }
+h1,h2,h3 { color: #111; font-weight: 600; }
+.stButton > button { background: #222; color: #fff; border: none; border-radius: 4px; padding: 0.4rem 1rem; }
+.stButton > button:hover { background: #444; color: #fff; }
+.card { background: #f7f7f7; border: 1px solid #ddd; border-radius: 6px; padding: 0.9rem 1.1rem; margin-bottom: 0.6rem; }
+.sec-hdr { font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 0.6rem; }
+.upload-hint { background: #fafafa; border: 1px dashed #ccc; border-radius: 6px; padding: 1rem; text-align: center; color: #999; font-size: 13px; margin-bottom: 0.6rem; }
+.badge { display:inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+.b-infection   { background:#fdecea; color:#c62828; }
+.b-symptom     { background:#fff3e0; color:#bf360c; }
+.b-vaccination { background:#e8f5e9; color:#1b5e20; }
+.b-medication  { background:#e3f2fd; color:#0d47a1; }
+.b-other       { background:#f5f5f5; color:#444;    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -231,22 +205,39 @@ elif page == "Timeline":
             </div>
             """, unsafe_allow_html=True)
 
-        fc1, fc2 = st.columns(2)
-        all_cats = sorted(set(
-            c.strip() for cats in bm["categories"].dropna()
-            for c in str(cats).split(",") if c.strip()
-        ))
-        sel_cats   = fc1.multiselect("Filter by biomarker category", all_cats, default=all_cats)
-        sel_etypes = fc2.multiselect("Filter events by type", EVENT_TYPES, default=EVENT_TYPES)
+        # ── Filters ──────────────────────────────────────────────────
+        st.markdown('<div class="sec-hdr">Filters</div>', unsafe_allow_html=True)
 
-        bm2 = bm.copy()
-        bm2["date"]  = pd.to_datetime(bm2["date"], errors="coerce")
-        bm2["value"] = pd.to_numeric(bm2["value"], errors="coerce")
-        bm2 = bm2.dropna(subset=["date","value"])
-        if sel_cats:
-            bm2 = bm2[bm2["categories"].apply(lambda x: any(c in str(x) for c in sel_cats))]
+        bm_prep = bm.copy()
+        bm_prep["date"]  = pd.to_datetime(bm_prep["date"], errors="coerce")
+        bm_prep["value"] = pd.to_numeric(bm_prep["value"], errors="coerce")
+        bm_prep = bm_prep.dropna(subset=["date","value"])
 
-        ev2 = ev[ev["event_type"].isin(sel_etypes)].copy() if not ev.empty else ev.copy()
+        # Date range
+        if not bm_prep.empty:
+            min_date = bm_prep["date"].min().date()
+            max_date = bm_prep["date"].max().date()
+        else:
+            min_date = max_date = date.today()
+
+        dr1, dr2 = st.columns(2)
+        date_from = dr1.date_input("From", value=min_date, min_value=min_date, max_value=max_date)
+        date_to   = dr2.date_input("To",   value=max_date, min_value=min_date, max_value=max_date)
+
+        # Biomarker selector
+        all_markers = sorted(bm_prep["biomarker"].dropna().unique().tolist())
+        sel_markers = st.multiselect("Select biomarkers to display", all_markers, default=all_markers)
+
+        # Apply filters
+        bm2 = bm_prep.copy()
+        bm2 = bm2[(bm2["date"] >= pd.Timestamp(date_from)) & (bm2["date"] <= pd.Timestamp(date_to))]
+        if sel_markers:
+            bm2 = bm2[bm2["biomarker"].isin(sel_markers)]
+
+        # Always show all events but filter by date range
+        ev2 = ev.copy() if not ev.empty else ev.copy()
+
+        st.markdown("---")
 
         for unit in bm2["unit"].unique():
             udf     = bm2[bm2["unit"] == unit]
@@ -292,6 +283,7 @@ elif page == "Timeline":
                     customdata=hover
                 ))
 
+            # Always overlay ALL clinical events as invisible scatter for hover
             if not ev2.empty:
                 for _, er in ev2.iterrows():
                     ec      = EVENT_COLORS.get(er["event_type"], "#888")
@@ -299,32 +291,68 @@ elif page == "Timeline":
                     end_raw = str(er.get("end_date","")).strip()
                     has_end = end_raw not in ["","nan","None"]
                     desc    = str(er.get("description",""))
+                    etype   = str(er.get("event_type",""))
+                    notes   = str(er.get("notes",""))
+                    date_label = es_str
+                    if has_end:
+                        date_label += f" → {end_raw[:10]}"
+
+                    hover_text = (
+                        f"<b>{desc}</b><br>"
+                        f"Type: {etype}<br>"
+                        f"Date: {date_label}"
+                        + (f"<br>Notes: {notes}" if notes not in ["","nan"] else "")
+                    )
 
                     if has_end:
+                        # Shaded band with invisible scatter for hover
                         fig.add_shape(type="rect",
                                       x0=es_str, x1=end_raw[:10], y0=0, y1=1,
                                       xref="x", yref="paper",
                                       fillcolor=ec, opacity=0.10, layer="below",
                                       line=dict(color=ec, width=1))
+                        # Invisible wide scatter trace for hover over the band
+                        fig.add_trace(go.Scatter(
+                            x=[es_str, end_raw[:10]],
+                            y=[0, 0],
+                            mode="markers",
+                            marker=dict(opacity=0, size=1),
+                            showlegend=False,
+                            hovertemplate=hover_text + "<extra></extra>",
+                            xaxis="x", yaxis="y"
+                        ))
                     else:
                         fig.add_shape(type="line",
                                       x0=es_str, x1=es_str, y0=0, y1=1,
                                       xref="x", yref="paper",
                                       line=dict(color=ec, width=1.5, dash="dash"))
+                        fig.add_trace(go.Scatter(
+                            x=[es_str],
+                            y=[0],
+                            mode="markers",
+                            marker=dict(color=ec, size=10, symbol="line-ns", line=dict(width=2, color=ec)),
+                            showlegend=False,
+                            hovertemplate=hover_text + "<extra></extra>",
+                            name=desc
+                        ))
+
                     fig.add_annotation(x=es_str, y=0.98,
                                        xref="x", yref="paper",
-                                       text=desc, showarrow=False,
+                                       text=desc[:25] + ("…" if len(desc)>25 else ""),
+                                       showarrow=False,
                                        font=dict(size=10, color=ec),
                                        xanchor="left", yanchor="top",
                                        bgcolor="rgba(255,255,255,0.8)")
 
             fig.update_layout(
-                height=300, margin=dict(l=0,r=0,t=30,b=0),
+                height=320, margin=dict(l=0,r=0,t=30,b=0),
                 paper_bgcolor="white", plot_bgcolor="white",
-                font=dict(family="-apple-system,sans-serif", color="#1a1a1a"),
+                font=dict(family="Arial,sans-serif", color="#111"),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                xaxis=dict(showgrid=True, gridcolor="#f0f0f0", zeroline=False),
-                yaxis=dict(showgrid=True, gridcolor="#f0f0f0", zeroline=False, title=unit)
+                xaxis=dict(showgrid=True, gridcolor="#f0f0f0", zeroline=False,
+                           range=[str(date_from), str(date_to)]),
+                yaxis=dict(showgrid=True, gridcolor="#f0f0f0", zeroline=False, title=unit),
+                hovermode="closest"
             )
             st.plotly_chart(fig, use_container_width=True)
 
