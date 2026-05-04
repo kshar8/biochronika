@@ -3,67 +3,41 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, date
 
-# ── Colors ───────────────────────────────────────────────────────────
-KELP  = "#405A51"
-FERN  = "#607663"
-RUST  = "#A25B4C"
-MOSS  = "#6D7D55"
-NAVY  = "#2B3955"
-BLUSH = "#C99287"
-
 EVENT_COLORS = {
-    "infection":   "#c0392b",
-    "symptom":     "#d68910",
-    "vaccination": "#27ae60",
-    "medication":  "#3949ab",
-    "other":       "#888888",
+    "infection":   "#d32f2f",
+    "symptom":     "#e65100",
+    "vaccination": "#2e7d32",
+    "medication":  "#1565c0",
+    "other":       "#555555",
 }
-BIOMARKER_COLORS = [KELP, NAVY, MOSS, RUST, FERN, BLUSH, "#7B6FA0", "#5B8FA6"]
+BIOMARKER_COLORS = [
+    "#1565c0","#2e7d32","#d32f2f","#6a1099",
+    "#e65100","#00695c","#4e342e","#37474f"
+]
 CATEGORIES  = ["Inflammatory","Neuro/CNS","Metabolic","Hematologic","Hormonal","Other"]
 EVENT_TYPES = ["infection","symptom","vaccination","medication","other"]
 
-# ── Page config ──────────────────────────────────────────────────────
 st.set_page_config(page_title="BioChronika", page_icon="🧬", layout="wide")
 
 st.markdown("""
 <style>
-html, body, [class*="css"] {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #ffffff; color: #1a1a1a;
-}
-.main { background: #ffffff; }
-section[data-testid="stSidebar"] {
-  background: #f5f5f5 !important;
-  border-right: 1px solid #e0e0e0;
-}
-section[data-testid="stSidebar"] * { color: #1a1a1a !important; }
-h1,h2,h3 { color: #1a1a1a; font-weight: 600; }
-.stButton > button {
-  background: #405A51; color: white; border: none;
-  border-radius: 5px; font-weight: 500; padding: 0.4rem 1.2rem;
-}
-.stButton > button:hover { background: #607663; color: white; }
-.card {
-  background: #f9f9f9; border: 1px solid #e5e5e5;
-  border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.75rem;
-}
-.sec-hdr {
-  font-size: 14px; font-weight: 600; color: #444;
-  border-bottom: 1px solid #e5e5e5; padding-bottom: 5px; margin-bottom: 0.75rem;
-}
-.upload-hint {
-  background: #fafafa; border: 1.5px dashed #ddd; border-radius: 8px;
-  padding: 1.25rem; text-align: center; color: #aaa; font-size: 13px; margin-bottom: 0.75rem;
-}
-.badge {
-  display:inline-block; padding: 2px 8px; border-radius: 4px;
-  font-size: 11px; font-weight: 500; margin-right: 4px;
-}
-.b-infection   { background:#fde8e8; color:#c0392b; }
-.b-symptom     { background:#fef3e2; color:#d68910; }
-.b-vaccination { background:#e8f5e9; color:#27ae60; }
-.b-medication  { background:#e8eaf6; color:#3949ab; }
-.b-other       { background:#f5f5f5; color:#666;    }
+* { font-family: Arial, sans-serif !important; }
+html, body, [class*="css"] { background: #fff; color: #111; }
+.main { background: #fff; }
+section[data-testid="stSidebar"] { background: #fafafa !important; border-right: 1px solid #ddd; }
+section[data-testid="stSidebar"] * { color: #111 !important; }
+h1,h2,h3 { color: #111; font-weight: 600; }
+.stButton > button { background: #222; color: #fff; border: none; border-radius: 4px; padding: 0.4rem 1rem; }
+.stButton > button:hover { background: #444; color: #fff; }
+.card { background: #f7f7f7; border: 1px solid #ddd; border-radius: 6px; padding: 0.9rem 1.1rem; margin-bottom: 0.6rem; }
+.sec-hdr { font-size: 13px; font-weight: 600; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 0.6rem; }
+.upload-hint { background: #fafafa; border: 1px dashed #ccc; border-radius: 6px; padding: 1rem; text-align: center; color: #999; font-size: 13px; margin-bottom: 0.6rem; }
+.badge { display:inline-block; padding: 1px 7px; border-radius: 3px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+.b-infection   { background:#fdecea; color:#c62828; }
+.b-symptom     { background:#fff3e0; color:#bf360c; }
+.b-vaccination { background:#e8f5e9; color:#1b5e20; }
+.b-medication  { background:#e3f2fd; color:#0d47a1; }
+.b-other       { background:#f5f5f5; color:#444;    }
 </style>
 """, unsafe_allow_html=True)
 
