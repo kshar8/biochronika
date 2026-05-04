@@ -205,28 +205,68 @@ elif page == "Timeline":
             </div>
             """, unsafe_allow_html=True)
 
-        # ── Filters ──────────────────────────────────────────────────
-        st.markdown('<div class="sec-hdr">Filters</div>', unsafe_allow_html=True)
-
+        # ── Prep data ─────────────────────────────────────────────
         bm_prep = bm.copy()
         bm_prep["date"]  = pd.to_datetime(bm_prep["date"], errors="coerce")
         bm_prep["value"] = pd.to_numeric(bm_prep["value"], errors="coerce")
         bm_prep = bm_prep.dropna(subset=["date","value"])
 
-        # Date range
         if not bm_prep.empty:
             min_date = bm_prep["date"].min().date()
             max_date = bm_prep["date"].max().date()
         else:
             min_date = max_date = date.today()
 
-        dr1, dr2 = st.columns(2)
-        date_from = dr1.date_input("From", value=min_date, min_value=min_date, max_value=max_date)
-        date_to   = dr2.date_input("To",   value=max_date, min_value=min_date, max_value=max_date)
+        # ── Filters ──────────────────────────────────────────────────
+        with st.expander("Filters", expanded=True):
+            # Date range
+            st.markdown("**Date range**")
+            dr1, dr2 = st.columns(2)
+            date_from = dr1.date_input("From", value=min_date, min_value=min_date, max_value=max_date)
+            date_to   = dr2.date_input("To",   value=max_date, min_value=min_date, max_value=max_date)
 
-        # Biomarker selector
-        all_markers = sorted(bm_prep["biomarker"].dropna().unique().tolist())
-        sel_markers = st.multiselect("Select biomarkers to display", all_markers, default=all_markers)
+            # Available timepoints reference
+            all_dates = sorted(bm_prep["date"].dt.date.unique())
+            date_strs = " · ".join([d.strftime("%b %d, %Y") for d in all_dates])
+            st.markdown(f"<div style='font-size:11px;color:#888;margin-top:4px;'>Available draw dates: {date_strs}</div>", unsafe_allow_html=True)
+
+            st.markdown("---")
+
+            # Biomarker selector — grouped by category
+            st.markdown("**Biomarkers**")
+            all_cats = sorted(set(
+                c.strip() for cats in bm_prep["categories"].dropna()
+                for c in str(cats).split(",") if c.strip()
+            ))
+            all_markers = sorted(bm_prep["biomarker"].dropna().unique().tolist())
+
+            # Assign a consistent color to each biomarker
+            marker_color_map = {m: BIOMARKER_COLORS[i % len(BIOMARKER_COLORS)] for i,m in enumerate(all_markers)}
+
+            # Show color legend for biomarkers
+            legend_html = " &nbsp; ".join(
+                f"<span style='display:inline-flex;align-items:center;gap:4px;'>"
+                f"<span style='width:12px;height:3px;background:{marker_color_map[m]};display:inline-block;border-radius:2px;'></span>"
+                f"<span style='font-size:12px;'>{m}</span></span>"
+                for m in all_markers
+            )
+            st.markdown(legend_html, unsafe_allow_html=True)
+            sel_markers = st.multiselect("Select biomarkers", all_markers, default=all_markers, label_visibility="collapsed")
+
+            st.markdown("---")
+
+            # Event type filter
+            st.markdown("**Clinical event types**")
+            present_etypes = sorted(ev["event_type"].dropna().unique().tolist()) if not ev.empty else EVENT_TYPES
+            # Show color legend for events
+            ev_legend_html = " &nbsp; ".join(
+                f"<span style='display:inline-flex;align-items:center;gap:4px;'>"
+                f"<span style='width:12px;height:12px;background:{EVENT_COLORS.get(et,'#888')};display:inline-block;border-radius:2px;opacity:0.7;'></span>"
+                f"<span style='font-size:12px;'>{et}</span></span>"
+                for et in present_etypes
+            )
+            st.markdown(ev_legend_html, unsafe_allow_html=True)
+            sel_etypes = st.multiselect("Select event types", present_etypes, default=present_etypes, label_visibility="collapsed")
 
         # Apply filters
         bm2 = bm_prep.copy()
@@ -234,8 +274,7 @@ elif page == "Timeline":
         if sel_markers:
             bm2 = bm2[bm2["biomarker"].isin(sel_markers)]
 
-        # Always show all events but filter by date range
-        ev2 = ev.copy() if not ev.empty else ev.copy()
+        ev2 = ev[ev["event_type"].isin(sel_etypes)].copy() if not ev.empty else ev.copy()
 
         st.markdown("---")
 
@@ -247,7 +286,7 @@ elif page == "Timeline":
 
             for j, marker in enumerate(markers):
                 mdf   = udf[udf["biomarker"] == marker].sort_values("date")
-                color = BIOMARKER_COLORS[j % len(BIOMARKER_COLORS)]
+                color = marker_color_map.get(marker, BIOMARKER_COLORS[j % len(BIOMARKER_COLORS)])
                 rl_s  = pd.to_numeric(mdf["ref_low"],  errors="coerce").dropna()
                 rh_s  = pd.to_numeric(mdf["ref_high"], errors="coerce").dropna()
                 ref_low  = float(rl_s.iloc[0]) if not rl_s.empty else None
