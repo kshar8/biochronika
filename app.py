@@ -436,7 +436,7 @@ elif page == "Timeline":
                     if has_end:
                         eend = pd.to_datetime(eend_raw)
                         fig.add_vrect(
-                            x0=estart, x1=eend,
+                            x0=str(estart)[:10], x1=str(eend)[:10],
                             fillcolor=ecolor, opacity=0.12,
                             layer="below", line_width=1,
                             line_color=ecolor,
@@ -447,7 +447,7 @@ elif page == "Timeline":
                         )
                     else:
                         fig.add_vline(
-                            x=estart,
+                            x=str(estart)[:10],
                             line_dash="dash",
                             line_color=ecolor,
                             line_width=1.5,
