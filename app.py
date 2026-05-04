@@ -250,9 +250,11 @@ if page == "Data Entry":
                     st.session_state.biomarkers = pd.concat([st.session_state.biomarkers, new_row], ignore_index=True)
                     st.success("Entry added!")
 
-        if not st.session_state.biomarkers.empty:
-            st.markdown(f"**{len(st.session_state.biomarkers)} biomarker entries**")
-            st.dataframe(st.session_state.biomarkers, use_container_width=True)
+            if not st.session_state.biomarkers.empty:
+                st.markdown(f"**{len(st.session_state.biomarkers)} biomarker entries**")
+                display_bm = st.session_state.biomarkers.copy()
+                display_bm["value"] = display_bm["value"].astype(str)
+                st.dataframe(display_bm, use_container_width=True)
             if st.button("Clear all biomarker data"):
                 st.session_state.biomarkers = pd.DataFrame(columns=["date","biomarker","value","unit","categories","ref_low","ref_high","lab","notes"])
                 st.rerun()
@@ -429,32 +431,44 @@ elif page == "Timeline":
             if not ev_filtered.empty:
                 for _, ev_row in ev_filtered.iterrows():
                     ecolor = EVENT_COLORS.get(ev_row["event_type"], SAND)
-                    estart = pd.to_datetime(ev_row["start_date"])
+                    estart_str = str(ev_row["start_date"])[:10]
                     eend_raw = str(ev_row.get("end_date","")).strip()
                     has_end = eend_raw not in ["", "nan", "None"]
 
                     if has_end:
-                        eend = pd.to_datetime(eend_raw)
-                        fig.add_vrect(
-                            x0=str(estart)[:10], x1=str(eend)[:10],
+                        eend_str = eend_raw[:10]
+                        fig.add_shape(
+                            type="rect",
+                            x0=estart_str, x1=eend_str,
+                            y0=0, y1=1,
+                            xref="x", yref="paper",
                             fillcolor=ecolor, opacity=0.12,
-                            layer="below", line_width=1,
-                            line_color=ecolor,
-                            annotation_text=ev_row["description"],
-                            annotation_position="top left",
-                            annotation_font_size=10,
-                            annotation_font_color=ecolor
+                            layer="below",
+                            line=dict(color=ecolor, width=1)
+                        )
+                        fig.add_annotation(
+                            x=estart_str, y=1,
+                            xref="x", yref="paper",
+                            text=ev_row["description"],
+                            showarrow=False,
+                            font=dict(size=10, color=ecolor),
+                            xanchor="left", yanchor="bottom"
                         )
                     else:
-                        fig.add_vline(
-                            x=str(estart)[:10],
-                            line_dash="dash",
-                            line_color=ecolor,
-                            line_width=1.5,
-                            annotation_text=ev_row["description"],
-                            annotation_position="top",
-                            annotation_font_size=10,
-                            annotation_font_color=ecolor
+                        fig.add_shape(
+                            type="line",
+                            x0=estart_str, x1=estart_str,
+                            y0=0, y1=1,
+                            xref="x", yref="paper",
+                            line=dict(color=ecolor, width=1.5, dash="dash")
+                        )
+                        fig.add_annotation(
+                            x=estart_str, y=1,
+                            xref="x", yref="paper",
+                            text=ev_row["description"],
+                            showarrow=False,
+                            font=dict(size=10, color=ecolor),
+                            xanchor="left", yanchor="bottom"
                         )
 
             fig.update_layout(
